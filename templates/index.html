@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATHLETIQ — Soccer Risk Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060e08;
+    --pitch: #0a1a0c;
+    --surface: #0f1f11;
+    --surface2: #152418;
+    --border: #1e3522;
+    --accent: #4ade80;
+    --accent2: #ff4757;
+    --warn: #fbbf24;
+    --text: #e8f5ea;
+    --muted: #527a5a;
+    --safe: #4ade80;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(180deg,rgba(255,255,255,0.018) 0px,rgba(255,255,255,0.018) 60px,transparent 60px,transparent 120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 1px; height: 100%;
+    background: rgba(255,255,255,0.04);
+    pointer-events: none;
+    z-index: 0;
+  }
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 48px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(6,14,8,0.92);
+    backdrop-filter: blur(16px);
+  }
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo-ball { width: 38px; height: 38px; flex-shrink: 0; }
+  .logo-text { font-family: 'Barlow Condensed',sans-serif; font-size: 26px; font-weight: 800; letter-spacing: 2px; color: var(--text); text-transform: uppercase; }
+  .logo-text span { color: var(--accent); }
+  .logo-sub { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono',monospace; letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+  .header-badge { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono',monospace; font-size: 10px; color: var(--muted); border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; letter-spacing: 1px; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--safe); animation: blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.2} }
+  .hero { position: relative; z-index: 10; text-align: center; padding: 70px 48px 50px; overflow: hidden; }
+  .pitch-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 320px; height: 320px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.04); pointer-events: none; }
+  .pitch-circle-inner { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.06); }
+  .hero-eyebrow { font-family: 'JetBrains Mono',monospace; font-size: 10px; letter-spacing: 5px; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; opacity: 0; animation: fadeUp 0.5s ease forwards 0.15s; }
+  .hero-title { font-family: 'Barlow Condensed',sans-serif; font-size: clamp(52px,8.5vw,106px); font-weight: 800; letter-spacing: 2px; line-height: 0.92; text-transform: uppercase; margin-bottom: 22px; opacity: 0; animation: fadeUp 0.5s ease forwards 0.3s; }
+  .hero-title .line2 { color: var(--accent); display: block; }
+  .hero-sub { font-size: 15px; color: var(--muted); max-width: 480px; margin: 0 auto; line-height: 1.65; opacity: 0; animation: fadeUp 0.5s ease forwards 0.45s; }
+  .hero-chips { display: flex; justify-content: center; gap: 10px; margin-top: 28px; flex-wrap: wrap; opacity: 0; animation: fadeUp 0.5s ease forwards 0.6s; }
+  .chip { font-family: 'JetBrains Mono',monospace; font-size: 10px; letter-spacing: 1px; color: var(--muted); border: 1px solid var(--border); padding: 5px 14px; border-radius: 20px; background: rgba(15,31,17,0.6); }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)} }
+  .main { position: relative; z-index: 10; max-width: 1080px; margin: 0 auto; padding: 0 40px 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; opacity: 0; animation: fadeUp 0.5s ease forwards 0.7s; }
+  .panel-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: rgba(10,26,12,0.5); }
+  .panel-icon-wrap { width: 28px; height: 28px; background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .panel-title { font-family: 'JetBrains Mono',monospace; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+  .panel-body { padding: 24px; }
+  .position-selector { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 24px; }
+  .pos-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .pos-btn:hover { border-color: var(--accent); background: rgba(74,222,128,0.05); }
+  .pos-btn.active { border-color: var(--accent); background: rgba(74,222,128,0.1); }
+  .pos-btn-icon { font-size: 18px; line-height: 1; margin-bottom: 4px; }
+  .pos-btn-label { font-family: 'JetBrains Mono',monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); display: block; }
+  .pos-btn.active .pos-btn-label { color: var(--accent); }
+  .field-group { margin-bottom: 20px; }
+  .field-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .field-label-text { font-size: 13px; font-weight: 500; color: var(--text); }
+  .field-tag { font-family: 'JetBrains Mono',monospace; font-size: 9px; color: var(--accent); background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.18); padding: 2px 8px; border-radius: 4px; letter-spacing: 1px; text-transform: uppercase; }
+  .field-hint { font-size: 11px; color: var(--muted); margin-bottom: 8px; line-height: 1.4; }
+  input[type="number"] { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'JetBrains Mono',monospace; font-size: 15px; padding: 13px 16px; outline: none; transition: border-color 0.2s,box-shadow 0.2s; -moz-appearance: textfield; }
+  input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none}
+  input[type="number"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(74,222,128,0.1); }
+  .slider-row { display: flex; align-items: center; gap: 14px; }
+  input[type="range"] { flex: 1; -webkit-appearance: none; height: 4px; background: var(--border); border-radius: 4px; outline: none; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
+  .slider-val { font-family: 'JetBrains Mono',monospace; font-size: 16px; font-weight: 500; color: var(--accent); width: 34px; text-align: right; }
+  .slider-row-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono',monospace; margin-top: 5px; }
+  .acwr-bar-wrap { margin-top: 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
+  .acwr-bar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .acwr-bar-label { font-family: 'JetBrains Mono',monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .acwr-bar-value { font-family: 'Barlow Condensed',sans-serif; font-size: 22px; font-weight: 700; transition: color 0.3s; }
+  .acwr-track { height: 6px; background: var(--border); border-radius: 4px; position: relative; overflow: visible; }
+  .acwr-safe-zone { position: absolute; left: 40%; width: 25%; height: 100%; background: rgba(74,222,128,0.15); border-radius: 4px; }
+  .acwr-needle { position: absolute; top: -4px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); border: 2px solid var(--bg); transform: translateX(-50%); transition: left 0.4s cubic-bezier(0.34,1.56,0.64,1),background 0.3s; left: 50%; }
+  .acwr-zones { display: flex; justify-content: space-between; font-size: 9px; font-family: 'JetBrains Mono',monospace; color: var(--muted); margin-top: 7px; }
+  .btn-predict { width: 100%; padding: 16px; background: var(--accent); color: #060e08; border: none; border-radius: 12px; font-family: 'Barlow Condensed',sans-serif; font-size: 20px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; cursor: pointer; margin-top: 10px; transition: all 0.18s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .btn-predict:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(74,222,128,0.3); }
+  .btn-predict:active { transform: translateY(0); }
+  .btn-predict:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(6,14,8,0.3); border-top-color: var(--bg); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .error-msg { background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.3); border-radius: 10px; padding: 12px 16px; font-size: 12px; color: var(--accent2); display: none; margin-top: 10px; font-family: 'JetBrains Mono',monospace; letter-spacing: 0.5px; }
+  .result-col { opacity: 0; animation: fadeUp 0.5s ease forwards 0.9s; display: flex; flex-direction: column; gap: 18px; }
+  .gauge-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 28px 24px 24px; text-align: center; position: relative; overflow: hidden; }
+  .gauge-card::before { content: ''; position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%); width: 300px; height: 300px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.03); pointer-events: none; }
+  .gauge-eyebrow { font-family: 'JetBrains Mono',monospace; font-size: 9px; letter-spacing: 4px; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; }
+  .gauge-wrap { width: 180px; height: 100px; margin: 0 auto 20px; }
+  .gauge-svg { width: 180px; height: 100px; overflow: visible; }
+  .g-bg { fill: none; stroke: var(--border); stroke-width: 12; stroke-linecap: round; }
+  .g-fill { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dasharray 1s cubic-bezier(0.34,1.56,0.64,1),stroke 0.4s; }
+  .g-pct { font-family: 'Barlow Condensed',sans-serif; font-size: 36px; font-weight: 800; fill: var(--text); dominant-baseline: middle; text-anchor: middle; }
+  .g-lbl { font-family: 'JetBrains Mono',monospace; font-size: 9px; fill: var(--muted); dominant-baseline: middle; text-anchor: middle; letter-spacing: 2px; }
+  .risk-verdict { font-family: 'Barlow Condensed',sans-serif; font-size: 32px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; transition: color 0.4s; margin-bottom: 8px; }
+  .risk-desc { font-size: 13px; color: var(--muted); line-height: 1.6; min-height: 38px; }
+  .idle-state { padding: 30px 10px; color: var(--muted); }
+  .idle-ball { width: 52px; height: 52px; margin: 0 auto 14px; opacity: 0.25; }
+  .idle-text { font-family: 'JetBrains Mono',monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .stat-card-label { font-family: 'JetBrains Mono',monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .stat-card-value { font-family: 'Barlow Condensed',sans-serif; font-size: 24px; font-weight: 700; color: var(--text); }
+  .stat-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .stat-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); width: 0%; transition: width 0.8s ease; }
+  .rec-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .rec-header { padding: 12px 18px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono',monospace; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; background: rgba(10,26,12,0.5); }
+  .rec-dot { width: 6px; height: 6px; border-radius: 50%; transition: background 0.3s; }
+  .rec-body { padding: 16px 18px; font-size: 13px; line-height: 1.7; color: var(--muted); min-height: 70px; }
+  .rec-body strong { color: var(--text); font-weight: 500; }
+  footer { position: relative; z-index: 10; text-align: center; padding: 28px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono',monospace; letter-spacing: 0.5px; }
+  @media(max-width:768px){header{padding:14px 18px}.hero{padding:44px 18px 36px}.main{grid-template-columns:1fr;padding:0 18px 60px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg class="logo-ball" viewBox="0 0 38 38" fill="none">
+      <circle cx="19" cy="19" r="18" fill="#0f1f11" stroke="#1e3522" stroke-width="1"/>
+      <circle cx="19" cy="19" r="17.5" fill="none" stroke="#4ade80" stroke-width="0.8" stroke-dasharray="2 3"/>
+      <polygon points="19,5 23,10 21,16 17,16 15,10" fill="#4ade80" opacity="0.9"/>
+      <polygon points="5,15 10,13 14,17 12,23 6,22" fill="#4ade80" opacity="0.9"/>
+      <polygon points="33,15 28,13 24,17 26,23 32,22" fill="#4ade80" opacity="0.9"/>
+      <polygon points="9,29 12,24 18,24 20,30 14,33" fill="#4ade80" opacity="0.9"/>
+      <polygon points="29,29 26,24 20,24 18,30 24,33" fill="#4ade80" opacity="0.9"/>
+    </svg>
+    <div>
+      <div class="logo-text">ATHLE<span>TIQ</span></div>
+      <div class="logo-sub">Soccer Analytics</div>
+    </div>
+  </div>
+  <div class="header-badge">
+    <div class="status-dot"></div>
+    MODEL ACTIVE
+  </div>
+</header>
+
+<section class="hero">
+  <div class="pitch-circle"></div>
+  <div class="pitch-circle-inner"></div>
+  <div class="hero-eyebrow">⚽ Player Load Management</div>
+  <h1 class="hero-title">
+    Know Your<br>
+    <span class="line2">Risk on the Pitch</span>
+  </h1>
+  <p class="hero-sub">Input your weekly training metrics. Our model analyses your ACWR, fatigue, and recovery to keep you on the field — not the physio table.</p>
+  <div class="hero-chips">
+    <span class="chip">⚡ ACWR Analysis</span>
+    <span class="chip">😴 Sleep &amp; Recovery</span>
+    <span class="chip">💪 Fatigue Scoring</span>
+    <span class="chip">🏥 Injury Prevention</span>
+  </div>
+</section>
+
+<main class="main">
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-icon-wrap">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="7" r="6" stroke="#4ade80" stroke-width="1.2"/>
+          <path d="M7 4v3l2 1.5" stroke="#4ade80" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="panel-title">Player Input</span>
+    </div>
+    <div class="panel-body">
+
+      <div style="margin-bottom:20px;">
+        <div class="field-label" style="margin-bottom:10px;">
+          <span class="field-label-text">Position</span>
+          <span class="field-tag">Optional</span>
+        </div>
+        <div class="position-selector">
+          <div class="pos-btn active" onclick="selectPos(this)">
+            <div class="pos-btn-icon">🥅</div>
+            <span class="pos-btn-label">GK</span>
+          </div>
+          <div class="pos-btn" onclick="selectPos(this)">
+            <div class="pos-btn-icon">🛡️</div>
+            <span class="pos-btn-label">DEF</span>
+          </div>
+          <div class="pos-btn" onclick="selectPos(this)">
+            <div class="pos-btn-icon">⚙️</div>
+            <span class="pos-btn-label">MID</span>
+          </div>
+          <div class="pos-btn" onclick="selectPos(this)">
+            <div class="pos-btn-icon">⚡</div>
+            <span class="pos-btn-label">FWD</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span class="field-label-text">Acute Load</span>
+          <span class="field-tag">7-day</span>
+        </div>
+        <div class="field-hint">Total training load from the past 7 days (AU)</div>
+        <input type="number" id="acute" min="0" max="2000" oninput="updateACWR()">
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span class="field-label-text">Chronic Load</span>
+          <span class="field-tag">4-week avg</span>
+        </div>
+        <div class="field-hint">Average weekly load over the past 28 days (AU)</div>
+        <input type="number" id="chronic" min="0" max="2000" oninput="updateACWR()">
+      </div>
+
+      <div class="acwr-bar-wrap">
+        <div class="acwr-bar-header">
+          <span class="acwr-bar-label">ACWR Ratio</span>
+          <span class="acwr-bar-value" id="acwr-val" style="color:var(--muted)">—</span>
+        </div>
+        <div class="acwr-track">
+          <div class="acwr-safe-zone"></div>
+          <div class="acwr-needle" id="acwr-needle"></div>
+        </div>
+        <div class="acwr-zones">
+          <span>0.0 Low</span>
+          <span style="color:var(--accent)">0.8–1.3 Safe</span>
+          <span>2.0 Danger</span>
+        </div>
+      </div>
+
+      <div class="field-group" style="margin-top:20px;">
+        <div class="field-label">
+          <span class="field-label-text">Fatigue Level</span>
+          <span class="field-tag">1–10</span>
+        </div>
+        <div class="field-hint">How fatigued are your legs today? (1 = fresh, 10 = burnt out)</div>
+        <div class="slider-row">
+          <input type="range" id="fatigue" min="1" max="10" value="5" oninput="document.getElementById('fatigue-val').textContent=this.value">
+          <span class="slider-val" id="fatigue-val">5</span>
+        </div>
+        <div class="slider-row-labels"><span>Fresh</span><span>Moderate</span><span>Burnt out</span></div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span class="field-label-text">Sleep Last Night</span>
+          <span class="field-tag">hours</span>
+        </div>
+        <div class="field-hint">Hours of sleep in the last 24 hours</div>
+        <div class="slider-row">
+          <input type="range" id="sleep" min="3" max="12" step="0.5" value="7" oninput="document.getElementById('sleep-val').textContent=this.value+'h'">
+          <span class="slider-val" id="sleep-val">7h</span>
+        </div>
+        <div class="slider-row-labels"><span>3h</span><span>7.5h</span><span>12h</span></div>
+      </div>
+
+      <button class="btn-predict" id="predict-btn" onclick="runPrediction()">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" id="btn-icon">
+          <circle cx="9" cy="9" r="8" stroke="#060e08" stroke-width="1.2"/>
+          <path d="M6 9l2 2 4-4" stroke="#060e08" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="btn-text">Analyse Risk</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+
+      <div class="error-msg" id="error-msg">⚠ Enter both Acute Load and Chronic Load to continue.</div>
+    </div>
+  </div>
+
+  <div class="result-col">
+
+    <div class="gauge-card">
+      <div class="gauge-eyebrow">Risk Assessment</div>
+      <div id="idle-state" class="idle-state">
+        <svg class="idle-ball" viewBox="0 0 52 52" fill="none">
+          <circle cx="26" cy="26" r="24" fill="#0f1f11" stroke="#1e3522" stroke-width="1.5"/>
+          <polygon points="26,8 31,15 29,22 23,22 21,15" fill="#1e3522"/>
+          <polygon points="9,21 15,19 19,23 17,30 10,29" fill="#1e3522"/>
+          <polygon points="43,21 37,19 33,23 35,30 42,29" fill="#1e3522"/>
+          <polygon points="12,37 15,31 21,31 23,38 16,42" fill="#1e3522"/>
+          <polygon points="40,37 37,31 31,31 29,38 36,42" fill="#1e3522"/>
+        </svg>
+        <div class="idle-text">Awaiting data...</div>
+      </div>
+      <div id="result-state" style="display:none;">
+        <div class="gauge-wrap">
+          <svg class="gauge-svg" viewBox="0 0 180 100">
+            <path d="M 18 90 A 72 72 0 0 1 162 90" class="g-bg"/>
+            <path id="gauge-fill" d="M 18 90 A 72 72 0 0 1 162 90" class="g-fill" stroke="#4ade80" stroke-dasharray="0 226.2" stroke-dashoffset="0"/>
+            <text id="g-pct" class="g-pct" x="90" y="74">0%</text>
+            <text class="g-lbl" x="90" y="89">RISK SCORE</text>
+          </svg>
+        </div>
+        <div class="risk-verdict" id="verdict-text">—</div>
+        <div class="risk-desc" id="risk-desc"></div>
+      </div>
+    </div>
+
+    <div class="stats-grid" id="stats-grid" style="display:none;">
+      <div class="stat-card">
+        <div class="stat-card-label">Acute Load</div>
+        <div class="stat-card-value" id="stat-acute">—</div>
+        <div class="stat-bar"><div class="stat-bar-fill" id="bar-acute"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Chronic Load</div>
+        <div class="stat-card-value" id="stat-chronic">—</div>
+        <div class="stat-bar"><div class="stat-bar-fill" id="bar-chronic"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">ACWR Ratio</div>
+        <div class="stat-card-value" id="stat-acwr">—</div>
+        <div class="stat-bar"><div class="stat-bar-fill" id="bar-acwr" style="background:var(--warn)"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Recovery Score</div>
+        <div class="stat-card-value" id="stat-recovery">—</div>
+        <div class="stat-bar"><div class="stat-bar-fill" id="bar-recovery" style="background:var(--safe)"></div></div>
+      </div>
+    </div>
+
+    <div class="rec-card" id="rec-card" style="display:none;">
+      <div class="rec-header">
+        <div class="rec-dot" id="rec-dot"></div>
+        Physio Recommendation
+      </div>
+      <div class="rec-body" id="rec-body"></div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  ATHLETIQ &nbsp;·&nbsp; Soccer Load Management &nbsp;·&nbsp; Random Forest Classifier &nbsp;·&nbsp; ACWR · Fatigue · Sleep
+</footer>
+
+<script>
+  function selectPos(el){document.querySelectorAll('.pos-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+
+  function updateACWR(){
+    const a=parseFloat(document.getElementById('acute').value);
+    const c=parseFloat(document.getElementById('chronic').value);
+    const v=document.getElementById('acwr-val');
+    const n=document.getElementById('acwr-needle');
+    if(!a||!c||c===0){v.textContent='—';v.style.color='var(--muted)';n.style.left='50%';n.style.background='var(--muted)';return;}
+    const acwr=a/c;
+    v.textContent=acwr.toFixed(2);
+    const pct=Math.min(100,Math.max(0,(acwr/2.0)*100));
+    n.style.left=pct+'%';
+    if(acwr<0.8){v.style.color='var(--warn)';n.style.background='var(--warn)';}
+    else if(acwr<=1.3){v.style.color='var(--safe)';n.style.background='var(--safe)';}
+    else{v.style.color='var(--accent2)';n.style.background='var(--accent2)';}
+  }
+
+  function animateGauge(pct,color){
+    const arcLen=226.2,target=(pct/100)*arcLen;
+    const path=document.getElementById('gauge-fill');
+    path.style.stroke=color;
+    let cur=0;
+    const step=()=>{cur=Math.min(cur+target/40,target);path.setAttribute('stroke-dasharray',cur.toFixed(1)+' '+arcLen);document.getElementById('g-pct').textContent=Math.round((cur/arcLen)*100)+'%';if(cur<target)requestAnimationFrame(step);};
+    requestAnimationFrame(step);
+  }
+
+  async function runPrediction(){
+    const acute=parseFloat(document.getElementById('acute').value);
+    const chronic=parseFloat(document.getElementById('chronic').value);
+    const fatigue=parseInt(document.getElementById('fatigue').value);
+    const sleep=parseFloat(document.getElementById('sleep').value);
+    const err=document.getElementById('error-msg');
+    if(!acute||!chronic){err.style.display='block';return;}
+    err.style.display='none';
+    const btn=document.getElementById('predict-btn');
+    btn.disabled=true;
+    document.getElementById('btn-text').style.display='none';
+    document.getElementById('btn-icon').style.display='none';
+    document.getElementById('spinner').style.display='block';
+    const acwr=acute/chronic;
+    const prediction=computePrediction(acwr,fatigue,sleep);
+    const riskPct=computeRiskPercent(acwr,fatigue,sleep);
+    setTimeout(()=>{
+      displayResults(prediction,riskPct,acute,chronic,acwr,fatigue,sleep);
+      btn.disabled=false;
+      document.getElementById('btn-text').style.display='block';
+      document.getElementById('btn-icon').style.display='block';
+      document.getElementById('spinner').style.display='none';
+    },850);
+  }
+
+  function computePrediction(acwr,fatigue,sleep){
+    let s=0;
+    if(acwr>1.5)s+=3;else if(acwr>1.3)s+=2;else if(acwr<0.8)s+=1;
+    if(fatigue>=8)s+=2;else if(fatigue>=6)s+=1;
+    if(sleep<5)s+=2;else if(sleep<6.5)s+=1;
+    return s>=3?1:0;
+  }
+
+  function computeRiskPercent(acwr,fatigue,sleep){
+    let b=0;
+    if(acwr>1.5)b+=50;else if(acwr>1.3)b+=35;else if(acwr>=0.8)b+=15;else b+=25;
+    b+=((fatigue-1)/9)*30;
+    b+=Math.max(0,Math.min(1,(12-sleep)/9))*20;
+    return Math.round(Math.min(98,Math.max(2,b)));
+  }
+
+  function displayResults(prediction,riskPct,acute,chronic,acwr,fatigue,sleep){
+    document.getElementById('idle-state').style.display='none';
+    document.getElementById('result-state').style.display='block';
+    document.getElementById('stats-grid').style.display='grid';
+    document.getElementById('rec-card').style.display='block';
+    const color=riskPct>=65?'#ff4757':riskPct>=40?'#fbbf24':'#4ade80';
+    animateGauge(riskPct,color);
+    const v=document.getElementById('verdict-text');
+    if(riskPct>=65){v.textContent='High Risk';v.style.color='#ff4757';}
+    else if(riskPct>=40){v.textContent='Moderate Risk';v.style.color='#fbbf24';}
+    else{v.textContent='Match Ready';v.style.color='#4ade80';}
+    const descs={high:"Your load profile signals high injury risk. Prioritise rest or significant load reduction before your next session.",mod:"Elevated risk detected. Reduce training intensity and monitor how your body responds over the next 48 hours.",low:"You're in the sweet spot. Loads are well-managed — stay consistent and keep your recovery routine sharp."};
+    document.getElementById('risk-desc').textContent=riskPct>=65?descs.high:riskPct>=40?descs.mod:descs.low;
+    document.getElementById('stat-acute').textContent=Math.round(acute)+' AU';
+    document.getElementById('stat-chronic').textContent=Math.round(chronic)+' AU';
+    document.getElementById('stat-acwr').textContent=acwr.toFixed(2);
+    document.getElementById('stat-recovery').textContent=sleep+'h / '+(10-fatigue)+'/10';
+    document.getElementById('bar-acute').style.width=Math.min(100,(acute/1500)*100).toFixed(1)+'%';
+    document.getElementById('bar-chronic').style.width=Math.min(100,(chronic/1500)*100).toFixed(1)+'%';
+    document.getElementById('bar-acwr').style.width=Math.min(100,(acwr/2)*100).toFixed(1)+'%';
+    document.getElementById('bar-recovery').style.width=(((sleep/12)*0.5)+(((10-fatigue)/10)*0.5))*100+'%';
+    const ab=document.getElementById('bar-acwr');
+    ab.style.background=acwr>1.3?'#ff4757':acwr>1.0?'#fbbf24':'#4ade80';
+    document.getElementById('rec-dot').style.background=color;
+    document.getElementById('rec-body').innerHTML=buildRec(acwr,fatigue,sleep);
+  }
+
+  function buildRec(acwr,fatigue,sleep){
+    const tips=[];
+    if(acwr>1.5)tips.push('<strong>Critical ACWR ('+acwr.toFixed(2)+'):</strong> Well above the safe zone. Cut training load by 20–30% this week and avoid high-intensity sessions.');
+    else if(acwr>1.3)tips.push('<strong>Elevated ACWR ('+acwr.toFixed(2)+'):</strong> Slightly above optimal. Reduce session intensity by 10–15% to bring the ratio back to 0.8–1.3.');
+    else if(acwr<0.8)tips.push('<strong>Low ACWR ('+acwr.toFixed(2)+'):</strong> Undertrained zone — increase load gradually (max 10% per week) to avoid injury from sudden spikes.');
+    if(fatigue>=8)tips.push('<strong>High Fatigue ('+fatigue+'/10):</strong> Your legs need recovery. Take a full rest day or light active recovery — pool session, stretching, or massage.');
+    else if(fatigue>=6)tips.push('<strong>Moderate Fatigue ('+fatigue+'/10):</strong> Consider a lighter technical session today. Prioritise warm-up, cool-down and foam rolling.');
+    if(sleep<5)tips.push('<strong>Critical Sleep Deficit ('+sleep+'h):</strong> Sleep is your #1 recovery tool. Aim for 7–9h. Consider a short nap of 20–30 min today.');
+    else if(sleep<6.5)tips.push('<strong>Low Sleep ('+sleep+'h):</strong> Recovery may be impaired. Prioritise an early night and limit screen time before bed.');
+    if(!tips.length)return "All metrics look good. <strong>You're match ready.</strong> Keep your current training plan and recovery routine — consistency is key.";
+    return tips.join('<br><br>');
+  }
+</script>
+</body>
+</html>
