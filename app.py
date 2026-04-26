@@ -4,7 +4,7 @@ import numpy as np
 
 app = Flask(__name__)
 
-model = joblib.load("injury_model.pkl")
+model = joblib.load(r"C:\Users\admin\Desktop\Python Course\AthletIQ\injury_model.pkl")
 
 @app.route("/")
 def home():
