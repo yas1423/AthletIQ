@@ -44,4 +44,4 @@ rules (ACWR thresholds, fatigue, sleep) due to unavailability
 of free real-world football load data.
 
 ## 🌐 Live Demo
-https://athletiq.onrender.com
+Live Demo: athletiq-b6xz.onrender.com
