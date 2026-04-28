@@ -42,3 +42,6 @@ using training load metrics, fatigue, and sleep data.
 📌 Note: Dataset is synthetically generated using domain-based 
 rules (ACWR thresholds, fatigue, sleep) due to unavailability 
 of free real-world football load data.
+
+## 🌐 Live Demo
+https://athletiq.onrender.com
