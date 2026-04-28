@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify,render_template
 import joblib
 import numpy as np
 
+# ATHLETIQ - Football Injury Prediction
+
 app = Flask(__name__)
 
 model = joblib.load("injury_model.pkl")
